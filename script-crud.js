@@ -4,6 +4,7 @@ const toggleFormTaskBtn = document.querySelector('.app__button--add-task')
 const formLabel = document.querySelector('.app__form-label')
 const textArea = document.querySelector('.app__form-textarea')
 const cancelFormTaskBtn = document.querySelector('.app__form-footer__button--cancel')
+const taskAtiveDescription = document.querySelector('.app__section-active-task-description')
 const btnCancelar = document.querySelector('.app__form-footer__button--cancel')
 
 const localStorageTarefas = localStorage.getItem('tarefas')
@@ -18,9 +19,54 @@ const taskIconSvg=`
         fill="#01080E" />
 </
 `
+
+let tarefaSelecionada = null
+let itemTarefaSelecionada = null
+
+let tarefaEmEdicao = null
+let paragraphEmEdicao = null
+
+const selecionaTarefa = (tarefa, elemento) => {
+if(tarefa.concluida){
+    return
+}
+
+
+document.querySelectorAll('.app__section-task-list-item-active').forEach(function (button) {
+    button.classList.remove('app__section-task-list-item-active')
+})
+
+if (tarefaSelecionada == tarefa) {
+    taskAtiveDescription.textContent = null
+    itemTarefaSelecionada = null
+    tarefaSelecionada = null
+    return
+}
+
+tarefaSelecionada = tarefa
+itemTarefaSelecionada = elemento
+taskAtiveDescription.textContent = tarefa.descricao
+elemento.classList.add('app__section-task-list-item-active')
+}
+
 const limparForm = () =>{
+    tarefaEmEdicao = null
+    paragraphEmEdicao = null
     textArea.value = ''
     formTask.classList.add('hidden')
+}
+
+const selecionaTarefaParaEditar = (tarefa, elemento) =>{
+    if(tarefaEmEdicao == tarefa) {
+        limparForm()
+        return
+    }   
+    formLabel.textContent='Editando tarefa'
+    tarefaEmEdicao=tarefa
+    paragraphEmEdicao=elemento
+    textArea.value = tarefa.descricao
+    formTask.classList.remove('hidden')
+
 }
 
 function creatTask(tarefa){
@@ -33,10 +79,39 @@ function creatTask(tarefa){
     const paragraph = document.createElement('p')
     paragraph.classList.add('app__section-task-list-item-description')
 
+    const button = document.createElement('button')
+
+    
+    button.classList.add('app_button-edit')
+    const editIcon = document.createElement('img')
+    editIcon.setAttribute('src', '/imagens/edit.png')
+
+    button.appendChild(editIcon)
+    button.addEventListener('click',(event) =>{
+        event.stopPropagation()
+        selecionaTarefaParaEditar(tarefa,paragraph)
+    })
+    
+    li.onclick = () =>{
+        selecionaTarefa(tarefa, li)
+    }
+
+    svgIcon.addEventListener('click', (event) =>{
+        event.stopPropagation()
+        button.setAttribute('disabled', true)
+        li.classList.add('app__section-task-list-item-complete')
+    })
+
+    if(tarefa.concluida){
+        button.setAttribute('disabled', true)
+        li.classList.add('app__section-task-list-item-complete')
+    }
+
     paragraph.textContent = tarefa.descricao
 
     li.appendChild(svgIcon)
     li.appendChild(paragraph)
+    li.appendChild(button)
 
     return li
 }
@@ -50,9 +125,18 @@ toggleFormTaskBtn.addEventListener('click', () =>{
     formTask.classList.toggle('hidden')
 
 })
+const updatLocalStorage =() =>{
+    localStorage.setItem('tarefas', JSON.stringify(tarefas))
+}
+
 
 formTask.addEventListener('submit', (evento) =>{
     evento.preventDefault()
+    if(tarefaEmEdicao){
+        tarefaEmEdicao.descricao = textArea.value
+        paragraphEmEdicao.textContent = textArea.value
+    }
+    else {
     const task = {
         descricao: textArea.value,
         concluida: false
@@ -60,12 +144,23 @@ formTask.addEventListener('submit', (evento) =>{
     tarefas.push(task)
     const taskItem = creatTask(task)
     taskListContainer.appendChild(taskItem)
-
+    }
+    updatLocalStorage()
     limparForm()
 })
 
 cancelFormTaskBtn.addEventListener('click',()=>{
     formTask.classList.add('hidden')
     limparForm()
+})
+
+document.addEventListener('TarefaFinalizada', function (e) {
+    if(tarefaSelecionada){
+        tarefaSelecionada.concluida = true
+        
+        itemTarefaSelecionada.classList.add('app__section-task-list-item-complete')
+        itemTarefaSelecionada.querySelector('button').setAttribute('disabled', true)
+        updatLocalStorage()
+    }
 })
 
